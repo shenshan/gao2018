@@ -8,15 +8,16 @@ import logging
 from code import interact
 
 # BOOKMARK: ensure loading
-from ibl import reference
-from ibl import subject
-from ibl import acquisition
-from ibl import behavior
-from ibl import ephys
+from pipeline import reference
+from pipeline import subject
+from pipeline import action
+from pipeline import acquisition
+from pipeline import behavior
+from pipeline import ephys
 
 
 log = logging.getLogger(__name__)
-__all__ = [reference, subject, acquisition, behavior, ephys]
+__all__ = [reference, subject, action, acquisition, behavior, ephys]
 
 
 def usage_exit():
@@ -29,29 +30,19 @@ def usage_exit():
 def logsetup(*args):
     logging.basicConfig(level=logging.ERROR)
     log.setLevel(logging.DEBUG)
-    logging.getLogger('ibl').setLevel(logging.DEBUG)
-    logging.getLogger('ibl.ingest').setLevel(logging.DEBUG)
+    logging.getLogger('pipeline').setLevel(logging.DEBUG)
 
 
 def shell(*args):
-    interact('ibl shell.\n\nschema modules:\n\n  - {m}\n'
+    interact('gao2018 shell.\n\nschema modules:\n\n  - {m}\n'
              .format(m='\n  - '.join(
                  '.'.join(m.__name__.split('.')[1:]) for m in __all__)),
              local=globals())
 
 
-def ingest(*args):
-    # local import so db is only created created/accessed if/when ingesting
-    from ibl.ingest import reference as ingest_reference
-    from ibl.ingest import subject as ingest_subject
-    from ibl.ingest import acquisition as ingest_acquisition
-    for mod in [ingest_reference, ingest_subject, ingest_acquisition]:
-        pass
-
 
 actions = {
     'shell': shell,
-    'ingest': ingest,
 }
 
 
