@@ -19,6 +19,8 @@ class Strain(dj.Lookup):
     definition = """
     strain_id: varchar(64)
     """
+    contents = [['000664']]
+
 
 @schema
 class Subject(dj.Manual):
@@ -27,7 +29,7 @@ class Subject(dj.Manual):
     ---
     -> Species
     -> Strain
+    -> reference.AnimalSource
     sex: enum('M', 'F', 'U')
     date_of_birth: date
-
     """

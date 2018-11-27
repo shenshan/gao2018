@@ -9,16 +9,20 @@ schema = dj.schema('gao2018_reference')
 class BrainLocation(dj.Lookup):
     definition = """
     brain_location_name: varchar(64)
+    ---
+    brain_location_full_name: varchar(128)
     """
-
-    contents = [['Fastigial'], ]
+    contents = [
+        ['Fastigial', 'Cerebellar fastigial nucleus'],
+        ['ALM', 'Anteriror lateral motor cortex']
+    ]
 
 @schema
 class Hemisphere(dj.Lookup):
     definition = """
     hemisphere_name: varchar(32)
     """
-    contents = [['left'], ['right'], ['both']]
+    contents = [['left'], ['right']]
 
 @schema
 class CoordinateReference(dj.Lookup):
@@ -27,17 +31,45 @@ class CoordinateReference(dj.Lookup):
     """
     contents = [['lambda'], ['bregma']]
 
+@schema
+class AnimalSource(dj.Lookup):
+    definition = """
+    animal_source_name: varchar(64)
+    """
+    contents = [['JAX'], ['Homemade']]
+
+@schema
+class VirusSource(dj.Lookup):
+    definition = """
+    virus_source_name: varchar(64)
+    """
+    contents = [['UNC'], ['UPenn'], ['MIT'], ['Stanford'], ['Homemade']]
+
+@schema
+class ProbeSource(dj.Lookup):
+    definition = """
+    probe_source_name: varchar(64)
+    ---
+    number_of_channels: int
+    """
+    contents = [
+        ['Cambridge NeuroTech', 64],
+        ['NeuroNexus', 32]
+    ]
 
 @schema
 class Virus(dj.Lookup):
     definition = """
     virus_name: varchar(64) # name of the virus
     ---
-    virus_source: enum('UNC', 'UPenn', 'MIT', 'Stanford', 'Homemade')
-    virus_lot_number=null: varchar(128)  # lot numnber of the virus
-    virus_titer=null: float     # x10^12GC/mL
+    -> VirusSource
+    virus_lot_number=null:  varchar(128)  # lot numnber of the virus
+    virus_titer=null:       float     # x10^12GC/mL
     """
-    contents = ['AAV-']
+    contents = [
+        ['AAV2-hSyn-hChR2(H134R)-EYFP'],
+        ['AAV2']
+    ]
 
 @schema
 class Experimenter(dj.Lookup):

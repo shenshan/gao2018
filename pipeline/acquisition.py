@@ -25,18 +25,18 @@ class PhotoStim(dj.Manual):
     photo_stim_location -> reference.BrainLocation
     photo_stim_hemisphere -> reference.Hemisphere
     photo_stim_coordinate_ref -> reference.CoordinateReference
-    photo_stim_coordinate_ap: float     
-    photo_stim_coordinate_ml:
-    photo_stim_coordinate_dv:
+    photo_stim_coordinate_ap: float    # in mm, anterior positive, posterior negative 
+    photo_stim_coordinate_ml: float    # in mm, always postive, number larger when more lateral
+    photo_stim_coordinate_dv: float    # in mm, always postive, number larger when more ventral (deeper)
     """
 
 @schema
 class Session(dj.Manual):
     definition = """
     -> Subject
-    session_date: date    # session date
+    session_time: datetime    # session time
     ---
-    session_directory: 
+    session_directory: varchar(256)
     session_note: varchar(256) # 
     """
 

@@ -9,9 +9,13 @@ schema = dj.schema('gao2018_behavior')
 @schema
 class TrialSet(dj.Manual):
     definition = """
-    -> Subject
-    session_date: date    # session date
+    -> acquisition.Session
     ---
-    session_directory: 
-    session_note: varchar(256) # 
+    number_of_trials:
     """
+    class Trial(dj.Part):
+        definition = """
+        -> master
+        trial_idx:
+        ---
+        """
