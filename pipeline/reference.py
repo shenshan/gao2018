@@ -67,8 +67,9 @@ class Virus(dj.Lookup):
     virus_titer=null:       float     # x10^12GC/mL
     """
     contents = [
-        ['AAV2-hSyn-hChR2(H134R)-EYFP'],
-        ['AAV2']
+        {'virus_name': 'AAV2-hSyn-hChR2(H134R)-EYFP', 
+         'virus_source_name': 'UNC'
+        }
     ]
 
 @schema

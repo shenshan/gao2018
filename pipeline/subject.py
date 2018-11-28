@@ -21,6 +21,15 @@ class Strain(dj.Lookup):
     """
     contents = [['000664']]
 
+@schema
+class Allele(dj.Lookup):
+    definition = """
+    allele_name: varchar(128)
+    """
+    contents = [
+        ['L7-cre'],
+        ['rosa26-lsl-ChR2-YFP']
+    ]
 
 @schema
 class Subject(dj.Manual):
@@ -32,4 +41,13 @@ class Subject(dj.Manual):
     -> reference.AnimalSource
     sex: enum('M', 'F', 'U')
     date_of_birth: date
+    """
+
+@schema
+class SubjectAllele(dj.Manual):
+    definition = """
+    -> Subject
+    -> Allele
+    ---
+    zygosity:  enum('Homozygous', 'Heterozygous', 'Negative', 'Unknown')
     """

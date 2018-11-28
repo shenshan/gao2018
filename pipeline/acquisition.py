@@ -2,7 +2,7 @@
 Schema of aquisition information.
 '''
 import datajoint as dj
-from pipeline import reference
+from pipeline import reference, subject
 
 schema = dj.schema('gao2018_acquisition')
 
@@ -22,9 +22,9 @@ class PhotoStim(dj.Manual):
     ---
     photo_stim_wavelength: int
     photo_stim_method: enum('fiber', 'laser')
-    photo_stim_location -> reference.BrainLocation
-    photo_stim_hemisphere -> reference.Hemisphere
-    photo_stim_coordinate_ref -> reference.CoordinateReference
+    (photo_stim_location) -> reference.BrainLocation
+    (photo_stim_hemisphere) -> reference.Hemisphere
+    (photo_stim_coordinate_ref) -> reference.CoordinateReference
     photo_stim_coordinate_ap: float    # in mm, anterior positive, posterior negative 
     photo_stim_coordinate_ml: float    # in mm, always postive, number larger when more lateral
     photo_stim_coordinate_dv: float    # in mm, always postive, number larger when more ventral (deeper)
@@ -33,7 +33,7 @@ class PhotoStim(dj.Manual):
 @schema
 class Session(dj.Manual):
     definition = """
-    -> Subject
+    -> subject.Subject
     session_time: datetime    # session time
     ---
     session_directory: varchar(256)

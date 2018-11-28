@@ -9,7 +9,7 @@ schema = dj.schema('gao2018_action')
 @schema
 class Weighing(dj.Manual):
     definition =  """
-    -> Subject
+    -> subject.Subject
     ---
     weight_before: float   # in grams
     weight_after: float    # in grams
@@ -28,7 +28,7 @@ class VirusInjection(dj.Manual):
     definition = """
     -> subject.Subject
     -> reference.Virus
-    -> reference.BrainRegion
+    -> reference.BrainLocation
     -> reference.Hemisphere
     injection_date: date   
     ---
@@ -36,5 +36,5 @@ class VirusInjection(dj.Manual):
     injection_coordinate_ap: float   # in mm, negative if posterior, positive if anterior
     injection_coordinate_ml: float   # in mm, always positive, larger number if more lateral
     injection_coordinate_dv: float   # in mm, always positive, larger number if more ventral (deeper)
-    injection_coordinate_ref -> reference.BrainReference
+    (injection_coordinate_ref) -> reference.CoordinateReference
     """
