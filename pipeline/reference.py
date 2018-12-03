@@ -20,7 +20,7 @@ class BrainLocation(dj.Lookup):
 @schema
 class Hemisphere(dj.Lookup):
     definition = """
-    hemisphere: varchar(32)
+    hemisphere: varchar(8)
     """
     contents = [['left'], ['right']]
 
@@ -34,7 +34,7 @@ class CoordinateReference(dj.Lookup):
 @schema
 class AnimalSource(dj.Lookup):
     definition = """
-    animal_source: varchar(64)
+    animal_source: varchar(32)      # source of the animal, Jax, Charles River etc.
     """
     contents = [['JAX'], ['Homemade']]
 
@@ -63,7 +63,7 @@ class Virus(dj.Lookup):
     virus: varchar(64) # name of the virus
     ---
     -> VirusSource
-    virus_lot_number=null:  varchar(128)  # lot numnber of the virus
+    virus_lot_number="":  varchar(128)  # lot numnber of the virus
     virus_titer=null:       float     # x10^12GC/mL
     """
     contents = [
