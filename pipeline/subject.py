@@ -10,14 +10,14 @@ schema = dj.schema('gao2018_subject')
 @schema
 class Species(dj.Lookup):
     definition = """
-    species_name: varchar(64)
+    species: varchar(24)
     """
     contents = [['Mus musculus']]
 
 @schema
 class Strain(dj.Lookup):
     definition = """
-    strain_id: varchar(64)
+    strain: varchar(24)
     """
     contents = [['000664']]
 

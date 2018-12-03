@@ -22,9 +22,9 @@ class PhotoStim(dj.Manual):
     ---
     photo_stim_wavelength: int
     photo_stim_method: enum('fiber', 'laser')
-    (photo_stim_location) -> reference.BrainLocation
-    (photo_stim_hemisphere) -> reference.Hemisphere
-    (photo_stim_coordinate_ref) -> reference.CoordinateReference
+    -> reference.BrainLocation(photo_stim_location="brain_location")
+    -> reference.Hemisphere(photo_stim_hemisphere="hemisphere")
+    -> reference.CoordinateReference.proj(photo_stim_coordinate_ref="coordinate_ref")
     photo_stim_coordinate_ap: float    # in mm, anterior positive, posterior negative 
     photo_stim_coordinate_ml: float    # in mm, always postive, number larger when more lateral
     photo_stim_coordinate_dv: float    # in mm, always postive, number larger when more ventral (deeper)

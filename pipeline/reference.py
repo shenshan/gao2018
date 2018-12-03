@@ -8,7 +8,7 @@ schema = dj.schema('gao2018_reference')
 @schema
 class BrainLocation(dj.Lookup):
     definition = """
-    brain_location_name: varchar(64)
+    brain_location: varchar(24)
     ---
     brain_location_full_name: varchar(128)
     """
@@ -20,7 +20,7 @@ class BrainLocation(dj.Lookup):
 @schema
 class Hemisphere(dj.Lookup):
     definition = """
-    hemisphere_name: varchar(32)
+    hemisphere: varchar(32)
     """
     contents = [['left'], ['right']]
 
@@ -34,21 +34,21 @@ class CoordinateReference(dj.Lookup):
 @schema
 class AnimalSource(dj.Lookup):
     definition = """
-    animal_source_name: varchar(64)
+    animal_source: varchar(64)
     """
     contents = [['JAX'], ['Homemade']]
 
 @schema
 class VirusSource(dj.Lookup):
     definition = """
-    virus_source_name: varchar(64)
+    virus_source: varchar(64)
     """
     contents = [['UNC'], ['UPenn'], ['MIT'], ['Stanford'], ['Homemade']]
 
 @schema
 class ProbeSource(dj.Lookup):
     definition = """
-    probe_source_name: varchar(64)
+    probe_source: varchar(64)
     ---
     number_of_channels: int
     """
@@ -60,7 +60,7 @@ class ProbeSource(dj.Lookup):
 @schema
 class Virus(dj.Lookup):
     definition = """
-    virus_name: varchar(64) # name of the virus
+    virus: varchar(64) # name of the virus
     ---
     -> VirusSource
     virus_lot_number=null:  varchar(128)  # lot numnber of the virus
@@ -75,12 +75,12 @@ class Virus(dj.Lookup):
 @schema
 class Experimenter(dj.Lookup):
     definition = """
-    experimenter_name: varchar(64)
+    experimenter: varchar(64)
     """
     contents = [['Nuo Li']]
 
 @schema
-class Whisker(dj.Lookup):
+class WhiskerConfig(dj.Lookup):
     definition = """
     whisker_config: varchar(32)
     """
