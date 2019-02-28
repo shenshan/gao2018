@@ -16,11 +16,11 @@ class Weighing(dj.Manual):
     """
 
 @schema
-class WhiskerConfig(dj.Manual):
+class SubjectWhiskerConfig(dj.Manual):
     definition = """
     -> subject.Subject
     ---
-    -> reference.Whisker
+    -> reference.WhiskerConfig
     """
 
 @schema
@@ -36,5 +36,5 @@ class VirusInjection(dj.Manual):
     injection_coordinate_ap: float   # in mm, negative if posterior, positive if anterior
     injection_coordinate_ml: float   # in mm, always positive, larger number if more lateral
     injection_coordinate_dv: float   # in mm, always positive, larger number if more ventral (deeper)
-    -> reference.CoordinateReference(injection_coordinate_ref="coordinate_ref")
+    -> reference.CoordinateReference
     """

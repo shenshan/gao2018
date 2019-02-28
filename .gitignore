@@ -1,3 +1,7 @@
+# notebooks for development
+notebooks/notebooks_dev/*
+
+
 # IDEA configs
 .idea/
 

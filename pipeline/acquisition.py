@@ -9,11 +9,10 @@ schema = dj.schema('gao2018_acquisition')
 @schema
 class ExperimentType(dj.Lookup):
     definition = """
-    experiment_type_name: varchar(64)
+    experiment_type: varchar(32)
     """
-    contents = [
-        ['behavior'], ['extracelluar'], ['photostim']
-    ]
+    contents = zip(['behavior', 'extracelluar', 'photostim'])
+        
 
 @schema
 class PhotoStim(dj.Manual):
@@ -22,9 +21,9 @@ class PhotoStim(dj.Manual):
     ---
     photo_stim_wavelength: int
     photo_stim_method: enum('fiber', 'laser')
-    -> reference.BrainLocation(photo_stim_location="brain_location")
-    -> reference.Hemisphere(photo_stim_hemisphere="hemisphere")
-    -> reference.CoordinateReference.proj(photo_stim_coordinate_ref="coordinate_ref")
+    -> reference.BrainLocation
+    -> reference.Hemisphere
+    -> reference.CoordinateReference
     photo_stim_coordinate_ap: float    # in mm, anterior positive, posterior negative 
     photo_stim_coordinate_ml: float    # in mm, always postive, number larger when more lateral
     photo_stim_coordinate_dv: float    # in mm, always postive, number larger when more ventral (deeper)
