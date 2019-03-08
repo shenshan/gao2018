@@ -10,9 +10,9 @@ from datetime import datetime
 from pipeline import reference, subject, action, acquisition, behavior, ephys
 
 # insert the meta data
-files = glob.glob('/data/datafiles/meta_data*')
+files1 = glob.glob('/data/datafiles/meta_data*')
 files2 = glob.glob('/data/datafiles 2/meta_data*')
-files = np.hstack([files, files2])
+files = np.hstack([files1, files2])
 
 
 for file in files:
@@ -128,10 +128,16 @@ for file in files:
 
     #===== acquisition tables ======
     # Session table and part tables
+    
+    if file in files1:
+        top_dir = os.path.join('data', 'datafiles')
+    elif file in files2:
+        top_dir = os.path.join('data', 'datafiles 2')
+        
     session = {
         'subject': data.animalID,
         'session_time': datetime.strptime(data.dateOfExperiment+data.timeOfExperiment, '%Y%m%d%H%M%S'),
-        'session_directory': file
+        'session_directory': os.path.join(top_dir, 'data_structure_' + data.animalID + data.dateOfExperiment + '.mat')
     }
     acquisition.Session.insert1(session, skip_duplicates=True)
     
