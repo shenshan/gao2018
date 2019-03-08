@@ -16,7 +16,12 @@ class ProbeInsertion(dj.Manual):
     rec_coordinate_ap: float      # in mm, positive when more anterior relative to the reference point.
     rec_coordinate_ml: float      # in mm, larger when more lateral
     rec_coordinate_dv=null: float # in mm, larger when deeper
-    rec_marker: enum('seterotaxic')
+    ground_coordinate_ap: float   # in mm
+    ground_coordinate_ml: float   # in mm
+    ground_coordinate_dv: float   # in mm
+    rec_marker: enum('stereotaxic')
+    spike_sorting_method: enum('manual')
+    ad_unit: varchar(12)
     -> reference.CoordinateReference
     penetration_num: tinyint      # the number of penetration a craniotomy has experienced.
     """

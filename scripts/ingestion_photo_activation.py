@@ -26,13 +26,6 @@ for file in files:
     
     # ====== subject tables ======
     subject.Species.insert1([data.species], skip_duplicates=True)
-
-    strains = data.animalStrain
-    if type(strains) == str:
-        subject.Strain.insert1([strains], skip_duplicates=True)
-    else:
-        for strain in data.animalStrain:
-            subject.Strain.insert1([strain], skip_duplicates=True)
     
     animal = {
         'subject': data.animalID,
@@ -46,8 +39,12 @@ for file in files:
     zygosity = {'subject': data.animalID}
     alleles = data.animalGeneModification
     if alleles.size > 0:
+        strains = data.animalStrain
+        if type(strains) == str:
+            strains = [strains]
         for i_allele, allele in enumerate(alleles):
-            subject.Allele.insert1([allele], skip_duplicates=True)
+            strain = str(strains[i_allele])
+            subject.Allele.insert1([allele, strain], skip_duplicates=True)
             zygosity['allele'] = allele
             copy = data.animalGeneCopy[i_allele]
             if copy == 0:
@@ -129,5 +126,69 @@ for file in files:
             }
             reference.Probe.insert1(probe_key, skip_duplicates=True)
 
-    # Photositim related tables
+    #===== acquisition tables ======
+    # Session table and part tables
+    session = {
+        'subject': data.animalID,
+        'session_time': datetime.strptime(data.dateOfExperiment+data.timeOfExperiment, '%Y%m%d%H%M%S'),
+        'session_directory': file
+    }
+    acquisition.Session.insert1(session, skip_duplicates=True)
     
+    session_experimenter = (acquisition.Session & session).fetch('KEY')[0]
+    session_experimenter['experimenter'] = data.experimenters
+    acquisition.Session.Experimenter.insert1(session_experimenter, skip_duplicates=True)
+
+    session_type = (acquisition.Session & session).fetch('KEY')[0]
+    if type(data.experimentType) is str:
+        session_type['experment_type'] = data.experimentType
+        acquisition.ExperimentType.insert1([data.experimentType], skip_duplicates=True)
+        acquisition.Session.ExperimentType.insert1(session_type, skip_duplicates=True)
+    for exp_type in data.experimentType:
+        session_type['experiment_type'] = exp_type
+        acquisition.ExperimentType.insert1([exp_type], skip_duplicates=True)
+        acquisition.Session.ExperimentType.insert1(session_type, skip_duplicates=True)
+    
+    # PhotoStim table
+    photo_stim = (acquisition.Session & session).fetch('KEY')[0]
+    location = data.photostim.photostimLocation
+    words = re.sub("[^\w]", " ", location).split()
+    hemisphere = np.array(words)[np.array([(word in ['left', 'right']) for word in words])]
+    loc = np.array(words)[np.array([(word in ['Fastigial', 'Dentate', 'DCN', 'ALM']) for word in words])]
+    photo_stim.update({
+        'photo_stim_wavelength': data.photostim.photostimWavelength,
+        'photo_stim_method': data.photostim.stimulationMethod,
+        'brain_location': str(np.squeeze(loc)),
+        'hemisphere': str(np.squeeze(hemisphere)),
+        'coordinate_ref': 'lambda',
+        'photo_stim_coordinate_ap': data.photostim.photostimCoordinates[0],
+        'photo_stim_coordinate_ml': data.photostim.photostimCoordinates[1],
+        'photo_stim_coordinate_dv': data.photostim.photostimCoordinates[2]
+    })
+    acquisition.PhotoStim.insert1(photo_stim, skip_duplicates=True)
+    
+    #===== ephys tables =====
+    # ProbeInsertion
+    probe_insertion = (acquisition.Session & session).fetch('KEY')[0]
+    probe_type = data.extracellular.probeType
+    
+    # to be changed when metadata is fixed
+    if type(probe_type) is not str:
+        probe_type = probe_type[0]
+    
+    probe_insertion.update({
+        'probe_type': probe_type,
+        'brain_location': data.extracellular.recordingLocation,
+        'rec_coordinate_ap': data.extracellular.recordingCoordinates[0],
+        'rec_coordinate_ml': data.extracellular.recordingCoordinates[1],
+        'ground_coordinate_ap': data.extracellular.groundCoordinates[0],
+        'ground_coordinate_ml': data.extracellular.groundCoordinates[1],
+        'ground_coordinate_dv': data.extracellular.groundCoordinates[2],
+        'rec_marker': data.extracellular.recordingMarker,
+        'coordinate_ref': 'lambda',
+        'penetration_num': data.extracellular.penetrationN,
+        'spike_sorting_method': data.extracellular.spikeSorting,
+        'ad_unit': data.extracellular.ADunit,
+        'rec_marker': data.extracellular.recordingMarker    
+    }) 
+    ephys.ProbeInsertion.insert1(probe_insertion, skip_duplicates=True)

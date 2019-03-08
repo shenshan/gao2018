@@ -5,6 +5,21 @@ import datajoint as dj
 from pipeline import reference, acquisition
 
 schema = dj.schema('gao2018_behavior')
+    
+@schema
+class PhotoStim(dj.Manual):
+    definition = """
+    -> acquisition.Session
+    ---
+    photo_stim_wavelength: int
+    photo_stim_method: enum('fiber', 'laser')
+    -> reference.BrainLocation
+    -> reference.Hemisphere
+    -> reference.CoordinateReference
+    photo_stim_coordinate_ap: float    # in mm, anterior positive, posterior negative 
+    photo_stim_coordinate_ml: float    # in mm, always postive, number larger when more lateral
+    photo_stim_coordinate_dv: float    # in mm, always postive, number larger when more ventral (deeper)
+    """
 
 @schema
 class PhotoStimType(dj.Lookup):

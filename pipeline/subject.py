@@ -14,19 +14,14 @@ class Species(dj.Lookup):
     """
     contents = zip(['Mus musculus'])
 
-@schema
-class Strain(dj.Lookup):
-    definition = """
-    strain: varchar(24)
-    """
-    contents = zip(['000664', '012569'])
 
 @schema
 class Allele(dj.Lookup):
     definition = """
     allele: varchar(24)
+    ---
+    stock_no: varchar(12)    # Jax strain number
     """
-    contents = zip(['L7-cre', 'rosa26-lsl-ChR2-YFP'])
 
 @schema
 class Subject(dj.Manual):
