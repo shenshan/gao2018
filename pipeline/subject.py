@@ -23,6 +23,7 @@ class Allele(dj.Lookup):
     stock_no: varchar(12)    # Jax strain number
     """
 
+
 @schema
 class Subject(dj.Manual):
     definition = """
@@ -33,6 +34,7 @@ class Subject(dj.Manual):
     sex: enum('M', 'F', 'U')
     date_of_birth: date
     """
+
 
 @schema
 class Zygosity(dj.Manual):

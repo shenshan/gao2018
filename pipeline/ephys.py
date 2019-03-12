@@ -6,6 +6,7 @@ from pipeline import reference, acquisition
 
 schema = dj.schema('gao2018_ephys')
 
+
 @schema
 class ProbeInsertion(dj.Manual):
     definition = """ # Description of probe insertion details during extracellular recording
@@ -38,18 +39,21 @@ class Voltage(dj.Imported):
     """
 
     def make(self, key):
-        # this function implements the ingestion of raw extracellular data into the pipeline
-        return None
+        # this function implements the ingestion of raw \
+        # extracellular data into the pipeline
+
+        key.update({'number_of_trials': len(data.trialStartTimes)})
+        behavior.TrialSet.insert1(key, skip_duplicates=True)
 
 
 @schema
 class UnitSpikeTimes(dj.Imported):
-    definition = """ 
+    definition = """
     -> ProbeInsertion
     unit_id : smallint
     ---
     -> reference.Probe.Channel
-    spike_times: longblob  # (s) time of each spike, with respect to the start of session 
+    spike_times: longblob  # (s) time of each spike, with respect to the start of session
     unit_cell_type: varchar(32)  # e.g. cell-type of this unit (e.g. wide width, narrow width spiking)
     unit_x: float  # (mm)
     unit_y: float  # (mm)
