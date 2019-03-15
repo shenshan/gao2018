@@ -85,7 +85,10 @@ class TrialSet(dj.Imported):
             good_trial = data.trialPropertiesHash.value[3][idx]
             photo_stim_type = data.trialPropertiesHash.value[4][idx]
 
-            if np.any(np.isnan([pole_in_time, pole_out_time, cue_time[0],
+            if len(cue_time) > 1:
+                cue_time = cue_time[0]
+
+            if np.any(np.isnan([pole_in_time, pole_out_time, cue_time,
                                 photo_stim_type])) or good_trial == 0:
                 continue
 
@@ -98,7 +101,7 @@ class TrialSet(dj.Imported):
                 'trial_start_time': data.trialStartTimes[idx],
                 'trial_pole_in_time': pole_in_time,
                 'trial_pole_out_time': pole_out_time,
-                'trial_cue_time': cue_time[0],
+                'trial_cue_time': cue_time,
                 'trial_response': trial_type,
                 'trial_lick_early': bool(data.trialTypeMat[7][idx]),
                 'photo_stim_id': str(int(photo_stim_type)),

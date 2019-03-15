@@ -5,6 +5,7 @@ import datajoint as dj
 
 schema = dj.schema('gao2018_reference')
 
+
 @schema
 class BrainLocation(dj.Lookup):
     definition = """
@@ -66,7 +67,7 @@ class ProbeSource(dj.Lookup):
     probe_source: varchar(32)
     """
 
-    
+
 @schema
 class Probe(dj.Lookup):
     definition = """ # Description of a particular model of probe.
@@ -81,10 +82,10 @@ class Probe(dj.Lookup):
         -> master
         channel_id:         smallint     # id of a channel on the probe
         ---
-        channel_x_pos:  float   # x position relative to the tip of the probe (um)
-        channel_y_pos:  float   # y position relative to the tip of the probe (um)
-        channel_z_pos:  float   # y position relative to the tip of the probe (um)
-        shank_id: smallint  # the shank id of this probe this channel is located on 
+        channel_x_pos=null:  float   # x position relative to the tip of the probe (um)
+        channel_y_pos=null:  float   # y position relative to the tip of the probe (um)
+        channel_z_pos=null:  float   # y position relative to the tip of the probe (um)
+        shank_id=null: smallint  # the shank id of this probe this channel is located on
         """
 
 
@@ -96,11 +97,10 @@ class Virus(dj.Lookup):
     -> VirusSource
     virus_lot_number="":  varchar(128)  # lot numnber of the virus
     """
-    contents = [
-        {'virus': 'AAV2-hSyn-hChR2(H134R)-EYFP', 
-         'virus_source': 'UNC'
-        }
-    ]
+    contents = [{
+        'virus': 'AAV2-hSyn-hChR2(H134R)-EYFP',
+        'virus_source': 'UNC'
+    }]
 
 
 @schema
