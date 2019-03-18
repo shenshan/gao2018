@@ -125,3 +125,11 @@ class TrialSet(dj.Imported):
         trial_start_idx:        int             # first index for this trial, on the session recording series
         trial_end_idx:          int             # last index for this trial, on the session recording series
         """
+
+
+@schema
+class TrialCondition(dj.Lookup):
+    definition = """
+    trial_condition: varchar(8)   # name of this condition
+    """
+    contents = zip(['Hit', 'All'])

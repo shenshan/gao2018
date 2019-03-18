@@ -4,10 +4,15 @@ import scipy.signal as signal
 
 
 # helper functions
-def get_trials(key, max_trial, min_trial, trial_type):
+def get_trials(key, min_trial, max_trial, trial_type):
 
-    return behavior.TrialSet.Trial & key & \
-        'trial_response = "{}"'.format(trial_type) & \
+    if key['trial_condition'] == 'All':
+        query = f'trial_response in ("Hit{trial_type}", "Err{trial_type}")'
+    elif key['trial_condition'] == 'Hit':
+        query = f'trial_response = "Hit{trial_type}"'
+
+    return behavior.TrialSet.Trial & key & query & \
+        'trial_lick_early = 0' & \
         'trial_id between {} and {}'.format(min_trial, max_trial)
 
 
@@ -33,7 +38,7 @@ def get_spk_counts(key, spk_times, trials):
             ).fetch1('pole_in_time', 'pole_out_time')
 
         after_cue_time = 1.3
-        before_pole_in_time = -0.5
+        before_pole_in_time = 0.5
         spk_time = spk_times[itrial]
 
         spk_counts.append([])
@@ -82,4 +87,7 @@ def get_psth(spk_times, time_bins):
         len(spk_times))
 
     # convolve with a box-car filter
-    return signal.convolve(mean_counts, signal.boxcar(200), mode='same')
+    window_size = 200
+    dt = np.mean(np.diff(time_bins))
+    return np.divide(signal.convolve(mean_counts, signal.boxcar(window_size), mode='same'),
+                     window_size*dt)
