@@ -118,7 +118,7 @@ class AlignedPsth(dj.Computed):
     psth_r:                     longblob    # psth for right report trials
     psth_l:                     longblob    # psth for left report trials
     sample_selectivity:         boolean     # whether selectivity is significant during the sample period
-    delay_selectivity:          boolean     # whether selectivity is significnat during the delay period
+    delay_selectivity:          boolean     # whether selectivity is significant during the delay period
     response_selectivity:       boolean     # whether selectivity is significant during the response period
     trial_ids_screened_r:       blob        # trial ids that were screened to calculate the preference, for r trials
     trial_ids_screened_l:       blob        # trial ids that were screened to calculate the preference, for l trials
@@ -128,6 +128,10 @@ class AlignedPsth(dj.Computed):
     """
 
     def make(self, key):
+
+        if key['photo_stim_id'] == 'NaN':
+            return
+
         aligned_psth = key.copy()
 
         spk_times, spk_trials = (UnitSpikeTimes & key).fetch1(

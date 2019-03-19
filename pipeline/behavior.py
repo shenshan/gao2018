@@ -28,8 +28,9 @@ class PhotoStimType(dj.Lookup):
     photo_stim_freq=0:                  float        # in Hz, frequency of photostimulation
     photo_stim_notes='':                varchar(128)
     """
+
     contents = [
-        dict(photo_stim_id='0', photo_stim_notes='stimulus'),
+        ['0', None, None, '', '', '', 0, '', 0, 'no stimulus'],
         ['1', 'Fastigial', 'right', 'sample', 'contralateral', 'activation',
             500, '5ms pulse', 20, ''],
         ['2', 'Fastigial', 'right', 'delay', 'contralateral', 'activation',
@@ -42,8 +43,8 @@ class PhotoStimType(dj.Lookup):
             500, 'cosine', 40, ''],
         ['6', 'DCN', 'right', 'delay', 'contralateral', 'inhibition',
             500, 'cosine', 40, ''],
-        dict(photo_stim_id='NaN', photo_stim_notes='stimulation configuration \
-            for other purposes, should not analyze')
+        ['NaN', None, None, '', '', '', 0, '', 0, 'stimulation configuration \
+            for other purposes, should not analyze']
     ]
 
 
@@ -56,9 +57,7 @@ class TrialSet(dj.Imported):
     """
 
     def make(self, key):
-
         trial_result = key.copy()
-        print(key)
         session_dir = (acquisition.Session & key).fetch1('session_directory')
         data = sio.loadmat(session_dir, struct_as_record=False,
                            squeeze_me=True)['obj']
@@ -85,10 +84,13 @@ class TrialSet(dj.Imported):
             good_trial = data.trialPropertiesHash.value[3][idx]
             photo_stim_type = data.trialPropertiesHash.value[4][idx]
 
+            if np.any(np.isnan(cue_time)):
+                continue
+
             if len(cue_time) > 1:
                 cue_time = cue_time[0]
 
-            if np.any(np.isnan([pole_in_time, pole_out_time, cue_time,
+            if np.any(np.isnan([pole_in_time, pole_out_time,
                                 photo_stim_type])) or good_trial == 0:
                 continue
 
@@ -133,3 +135,26 @@ class TrialCondition(dj.Lookup):
     trial_condition: varchar(8)   # name of this condition
     """
     contents = zip(['Hit', 'All'])
+
+
+@schema
+class TrialSetType(dj.Computed):
+    definition = """
+    -> TrialSet
+    ---
+    trial_set_type: enum('photo activation', 'photo inhibition')
+    """
+
+    def make(self, key):
+        activation = TrialSet.Trial & key & \
+            (PhotoStimType & 'photo_stim_act_type="activation"')
+        inhibition = TrialSet.Trial & key & \
+            (PhotoStimType & 'photo_stim_act_type="inhibition"')
+
+        if len(activation):
+            key['trial_set_type'] = 'photo activation'
+
+        if len(inhibition):
+            key['trial_set_type'] = 'photo inhibition'
+
+        self.insert1(key)
