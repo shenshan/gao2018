@@ -1,3 +1,9 @@
+# notebooks for development
+notebooks/notebooks_dev/*
+
+# vscode
+.vscode/*
+
 # IDEA configs
 .idea/
 
