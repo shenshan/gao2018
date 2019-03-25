@@ -101,45 +101,54 @@ class UnitSpikeTimes(dj.Imported):
 
 
 @schema
-class AlignedPsth(dj.Computed):
+class UnitSelectivity(dj.Computed):
     definition = """
     -> UnitSpikeTimes
-    -> behavior.PhotoStimType
     -> behavior.TrialCondition
     ---
     r_trial_number:             int         # trial number of right reports
     l_trial_number:             int         # trial number of left reports
     r_trial_ids:                blob        # trial ids of right report trials
     l_trial_ids:                blob        # trial ids of left report trials
-    mean_fr_r:                  longblob    # mean firing rate for right report trials
-    mean_fr_l:                  longblob    # mean firing rate for left report trials
-    time_window:                blob        # time window for spike times and psth, 0 is cue start time.
-    bins:                       longblob    # time bins for psth computation
-    psth_r:                     longblob    # psth for right report trials
-    psth_l:                     longblob    # psth for left report trials
     sample_selectivity:         boolean     # whether selectivity is significant during the sample period
     delay_selectivity:          boolean     # whether selectivity is significant during the delay period
     response_selectivity:       boolean     # whether selectivity is significant during the response period
+    selectivity:                boolean     # whether any of the previous three is significant
+    preference:                 enum('R', 'L', 'N')
+    time_window:                blob        # time window of interest
+    bins:                       longblob    # time bins
     trial_ids_screened_r:       blob        # trial ids that were screened to calculate the preference, for r trials
     trial_ids_screened_l:       blob        # trial ids that were screened to calculate the preference, for l trials
-    psth_prefer:                longblob    # psth on preferred trials
-    psth_non_prefer:            longblob    # psth on non-preferred trials
-    psth_diff:                  longblob    # psth difference betweens preferred trials and non-preferred trials
+    mean_fr_r_all:              blob        # mean firing rate of right reporting trials in different stages
+    mean_fr_l_all:              blob        # mean firing rate of left reporting trials in different stages
+    mean_fr_diff_rl_all:        blob        # mean firing rate difference, right - left
+    psth_r_test:                longblob    # psth for right report test trials
+    psth_l_test:                longblob    # psth for left report test trials
+    psth_prefer_test:           longblob    # psth on preferred test trials
+    psth_non_prefer_test:       longblob    # psth on non-preferred test trials
+    psth_diff_test:             longblob    # psth difference between preferred and non-preferred test trials
+    preference:                 enum('R', 'L', 'No')
     """
+
+    key_source = UnitSpikeTimes * behavior.TrialCondition - \
+        (UnitSpikeTimes.proj() &
+         (behavior.TrialSetType & 'trial_set_type="photo inhibition"')) * \
+        (behavior.TrialCondition & 'trial_condition="Hit"')
 
     def make(self, key):
 
-        if key['photo_stim_id'] == 'NaN':
-            return
-
-        aligned_psth = key.copy()
+        selectivity = key.copy()
+        key_no_stim = key.copy()
+        key_no_stim['photo_stim_id'] = '0'
 
         spk_times, spk_trials = (UnitSpikeTimes & key).fetch1(
-            'spike_times', 'spike_trials')
-        min_trial = min(spk_trials)
-        max_trial = max(spk_trials)
-        r_trials = get_trials(key, min_trial, max_trial, 'R')
-        l_trials = get_trials(key, min_trial, max_trial, 'L')
+                'spike_times', 'spike_trials')
+
+        min_trial = np.min(spk_trials)
+        max_trial = np.max(spk_trials)
+
+        r_trials = get_trials(key_no_stim, min_trial, max_trial, 'R')
+        l_trials = get_trials(key_no_stim, min_trial, max_trial, 'L')
 
         if not (len(l_trials) > 8 and len(r_trials) > 8):
             return
@@ -157,12 +166,8 @@ class AlignedPsth(dj.Computed):
         spk_counts_r = np.array(get_spk_counts(key, spk_times_r, r_trial_ids))
         spk_counts_l = np.array(get_spk_counts(key, spk_times_l, l_trial_ids))
 
-        # compute convoluted psth
-        time_window = [-3.5, 2]
-        bins = np.arange(time_window[0], time_window[1]+0.001, 0.001)
-
-        psth_r = get_psth(spk_times_r, bins)
-        psth_l = get_psth(spk_times_l, bins)
+        mean_fr_r = np.mean(spk_counts_r, axis=0)
+        mean_fr_l = np.mean(spk_counts_l, axis=0)
 
         # check selectivity
         result_sample = ss.ttest_ind(spk_counts_r[:, 0],
@@ -171,9 +176,13 @@ class AlignedPsth(dj.Computed):
                                     spk_counts_l[:, 1])
         result_response = ss.ttest_ind(spk_counts_r[:, 2],
                                        spk_counts_l[:, 2])
+        sample_selectivity = int(result_sample.pvalue < 0.05)
+        delay_selectivity = int(result_delay.pvalue < 0.05)
+        response_selectivity = int(result_response.pvalue < 0.05)
 
-        # prefered psth
-        if key['photo_stim_id'] == '0':
+        # screen size depends on the experimental type
+        trial_set_type = (behavior.TrialSetType & key).fetch1('trial_set_type')
+        if trial_set_type == "photo activation":
             screen_size = 10
         else:
             screen_size = 5
@@ -205,34 +214,127 @@ class AlignedPsth(dj.Computed):
         spk_counts_l_test = get_spk_counts(key, spk_times_l_test,
                                            l_trial_ids[screen_size:])
 
+        # compute convoluted psth
+        time_window = [-3.5, 2]
+        bins = np.arange(time_window[0], time_window[1]+0.001, 0.001)
+
         psth_r_test = get_psth(spk_times_r_test, bins)
         psth_l_test = get_psth(spk_times_l_test, bins)
         if mean_fr_r_screen[3] > mean_fr_l_screen[3]:
-            psth_prefer = psth_r_test
-            psth_non_prefer = psth_l_test
+            psth_prefer_test = psth_r_test
+            psth_non_prefer_test = psth_l_test
+            preference = 'R'
         else:
-            psth_prefer = psth_l_test
-            psth_non_prefer = psth_r_test
+            psth_prefer_test = psth_l_test
+            psth_non_prefer_test = psth_r_test
+            preference = 'L'
 
-        aligned_psth.update({
+        if not selectivity:
+            preference = 'No'
+
+        selectivity.update({
             'r_trial_number': len(r_trials),
             'l_trial_number': len(l_trials),
             'r_trial_ids': r_trial_ids,
             'l_trial_ids': l_trial_ids,
-            'mean_fr_r': np.mean(spk_counts_r, axis=0),
-            'mean_fr_l': np.mean(spk_counts_l, axis=0),
+            'sample_selectivity': sample_selectivity,
+            'delay_selectivity':  delay_selectivity,
+            'response_selectivity': response_selectivity,
+            'selectivity': int(np.any([sample_selectivity, delay_selectivity,
+                                       response_selectivity])),
             'time_window': time_window,
             'bins': bins,
-            'psth_r': psth_r,
-            'psth_l': psth_l,
-            'sample_selectivity': bool(result_sample.pvalue < 0.05),
-            'delay_selectivity':  bool(result_delay.pvalue < 0.05),
-            'response_selectivity': bool(result_delay.pvalue < 0.05),
             'trial_ids_screened_r': r_trial_ids[:screen_size],
             'trial_ids_screened_l': l_trial_ids[:screen_size],
-            'psth_prefer': psth_prefer,
-            'psth_non_prefer': psth_non_prefer,
-            'psth_diff': psth_prefer - psth_non_prefer
+            'psth_r_test': psth_r_test,
+            'psth_l_test': psth_l_test,
+            'psth_prefer_test': psth_prefer_test,
+            'psth_non_prefer_test': psth_non_prefer_test,
+            'psth_diff_test': psth_prefer_test - psth_non_prefer_test,
+            'mean_fr_r_all': mean_fr_r,
+            'mean_fr_l_all': mean_fr_l,
+            'mean_fr_diff_rl_all': mean_fr_r - mean_fr_l,
+            'preference': preference
+        })
+
+        self.insert1(selectivity)
+
+
+@schema
+class AlignedPsthStimOn(dj.Computed):
+    definition = """
+    -> UnitSelectivity
+    -> behavior.PhotoStimType
+    ---
+    r_trial_number_on:    int         # trial number of right reports
+    l_trial_number_on:    int         # trial number of left reports
+    mean_fr_r_on:         longblob    # mean firing rate for right report trials
+    mean_fr_l_on:         longblob    # mean firing rate for left report trials
+    psth_r_on:            longblob    # psth for right report trials
+    psth_l_on:            longblob    # psth for left report trials
+    psth_prefer_on:       longblob    # psth on preferred trials
+    psth_non_prefer_on:   longblob    # psth on non-preferred trials
+    psth_diff_on:         longblob    # psth difference betweens preferred trials and non-preferred trials
+    """
+
+    def make(self, key):
+
+        if key['photo_stim_id'] in ['NaN', '0']:
+            return
+
+        time_window, bins, preference, selectivity = \
+            (UnitSelectivity & key).fetch1(
+                'time_window', 'bins', 'preference', 'selectivity')
+
+        if not selectivity:
+            return
+
+        aligned_psth = key.copy()
+
+        spk_times, spk_trials = (UnitSpikeTimes & key).fetch1(
+            'spike_times', 'spike_trials')
+        min_trial = min(spk_trials)
+        max_trial = max(spk_trials)
+        r_trials = get_trials(key, min_trial, max_trial, 'R')
+        l_trials = get_trials(key, min_trial, max_trial, 'L')
+
+        if not (len(l_trials) > 2 and len(r_trials) > 2):
+            return
+
+        r_trial_ids = r_trials.fetch('trial_id')
+        l_trial_ids = l_trials.fetch('trial_id')
+
+        # spike times
+        spk_times_r = get_spk_times(key, spk_times, spk_trials,
+                                    r_trial_ids)
+        spk_times_l = get_spk_times(key, spk_times, spk_trials,
+                                    l_trial_ids)
+
+        # spike counts in different stages
+        spk_counts_r = np.array(get_spk_counts(key, spk_times_r, r_trial_ids))
+        spk_counts_l = np.array(get_spk_counts(key, spk_times_l, l_trial_ids))
+
+        # compute convoluted psth
+        psth_r = get_psth(spk_times_r, bins)
+        psth_l = get_psth(spk_times_l, bins)
+
+        if preference == 'R':
+            psth_prefer = psth_r
+            psth_non_prefer = psth_l
+        elif preference == 'L':
+            psth_prefer = psth_l
+            psth_non_prefer = psth_r
+
+        aligned_psth.update({
+            'r_trial_number_on': len(r_trials),
+            'l_trial_number_on': len(l_trials),
+            'mean_fr_r_on': np.mean(spk_counts_r, axis=0),
+            'mean_fr_l_on': np.mean(spk_counts_l, axis=0),
+            'psth_r_on': psth_r,
+            'psth_l_on': psth_l,
+            'psth_prefer_on': psth_prefer,
+            'psth_non_prefer_on': psth_non_prefer,
+            'psth_diff_on': psth_prefer - psth_non_prefer
         })
 
         self.insert1(aligned_psth)

@@ -87,7 +87,7 @@ class TrialSet(dj.Imported):
             if np.any(np.isnan(cue_time)):
                 continue
 
-            if len(cue_time) > 1:
+            if np.size(cue_time) > 1:
                 cue_time = cue_time[0]
 
             if np.any(np.isnan([pole_in_time, pole_out_time,
@@ -105,7 +105,7 @@ class TrialSet(dj.Imported):
                 'trial_pole_out_time': pole_out_time,
                 'trial_cue_time': cue_time,
                 'trial_response': trial_type,
-                'trial_lick_early': bool(data.trialTypeMat[7][idx]),
+                'trial_lick_early': bool(data.trialTypeMat[6][idx]),
                 'photo_stim_id': str(int(photo_stim_type)),
                 'trial_start_idx': itrial_idx[0],
                 'trial_end_idx': itrial_idx[-1]
