@@ -14,7 +14,7 @@ services:
     links:
       - db_gao2018
     ports:
-      - "8890:8888"
+      - "8892:8888"
   db_gao2018:
     image: datajoint/mysql
     environment:

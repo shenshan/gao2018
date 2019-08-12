@@ -6,10 +6,16 @@ import scipy.signal as signal
 # helper functions
 def get_trials(key, min_trial, max_trial, trial_type):
 
-    if key['trial_condition'] == 'All':
-        query = f'trial_response in ("Hit{trial_type}", "Err{trial_type}")'
-    elif key['trial_condition'] == 'Hit':
-        query = f'trial_response = "Hit{trial_type}"'
+    if trial_type == 'All':
+        if key['trial_condition'] == 'All':
+            query = {}
+        elif key['trial_condition'] == 'Hit':
+            query = 'trial_response in ("HitL", "HitR")'
+    else:
+        if key['trial_condition'] == 'All':
+            query = f'trial_response in ("Hit{trial_type}", "Err{trial_type}")'
+        elif key['trial_condition'] == 'Hit':
+            query = f'trial_response = "Hit{trial_type}"'
 
     return behavior.TrialSet.Trial & key & query & \
         'trial_lick_early = 0' & \

@@ -158,3 +158,36 @@ class TrialSetType(dj.Computed):
             key['trial_set_type'] = 'photo inhibition'
 
         self.insert1(key)
+
+
+@schema
+class TrialNumberSummary(dj.Computed):
+    definition = """
+    -> TrialSet
+    ---
+    n_sample_l_trials   :   int
+    n_sample_r_trials   :   int
+    n_delay_l_trials    :   int
+    n_delay_r_trials    :   int
+    n_no_stim_l_trials  :   int
+    n_no_stim_r_trials  :   int
+    n_test_trials       :   int
+    """
+    key_source = TrialSet & (
+        TrialSet.Trial & 'photo_stim_id in ("1","2","3","4")')
+
+    def make(self, key):
+        key.update(
+            n_sample_l_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("1","3")' & 'trial_response in ("HitL", "ErrL")'),
+            n_sample_r_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("1","3")' & 'trial_response in ("HitR", "ErrR")'),
+            n_delay_l_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("2","4")' & 'trial_response in ("HitL", "ErrL")'),
+            n_delay_r_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("2","4")' & 'trial_response in ("HitR", "ErrR")'),
+            n_no_stim_l_trials=len(TrialSet.Trial & key & 'photo_stim_id="0"' & 'trial_response in ("HitL", "ErrL")'),
+            n_no_stim_r_trials=len(TrialSet.Trial & key & 'photo_stim_id="0"' & 'trial_response in ("HitR", "ErrR")'),
+        )
+
+        key['n_test_trials'] = np.mean([key['n_sample_l_trials'],
+                                        key['n_sample_r_trials'],
+                                        key['n_delay_l_trials'],
+                                        key['n_delay_r_trials']])
+        self.insert1(key)

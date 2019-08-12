@@ -122,6 +122,7 @@ class UnitSelectivity(dj.Computed):
     mean_fr_r_all:              blob        # mean firing rate of right reporting trials in different stages
     mean_fr_l_all:              blob        # mean firing rate of left reporting trials in different stages
     mean_fr_diff_rl_all:        blob        # mean firing rate difference, right - left
+    mean_fr_all:                blob        # mean firing of all trials in different stages
     psth_r_test:                longblob    # psth for right report test trials
     psth_l_test:                longblob    # psth for left report test trials
     psth_prefer_test:           longblob    # psth on preferred test trials
@@ -149,25 +150,31 @@ class UnitSelectivity(dj.Computed):
 
         r_trials = get_trials(key_no_stim, min_trial, max_trial, 'R')
         l_trials = get_trials(key_no_stim, min_trial, max_trial, 'L')
+        all_trials = get_trials(key_no_stim, min_trial, max_trial, 'All')
 
         if not (len(l_trials) > 8 and len(r_trials) > 8):
             return
 
         r_trial_ids = r_trials.fetch('trial_id')
         l_trial_ids = l_trials.fetch('trial_id')
+        all_trial_ids = all_trials.fetch('trial_id')
 
         # spike times
         spk_times_r = get_spk_times(key, spk_times, spk_trials,
                                     r_trial_ids)
         spk_times_l = get_spk_times(key, spk_times, spk_trials,
                                     l_trial_ids)
+        spk_times_all = get_spk_times(key, spk_times, spk_trials,
+                                      all_trial_ids)
 
         # spike counts in different stages
         spk_counts_r = np.array(get_spk_counts(key, spk_times_r, r_trial_ids))
         spk_counts_l = np.array(get_spk_counts(key, spk_times_l, l_trial_ids))
+        spk_counts_all = np.array(get_spk_counts(key, spk_times_all, all_trial_ids))
 
         mean_fr_r = np.mean(spk_counts_r, axis=0)
         mean_fr_l = np.mean(spk_counts_l, axis=0)
+        mean_fr_all = np.mean(spk_counts_all, axis=0)
 
         # check selectivity
         result_sample = ss.ttest_ind(spk_counts_r[:, 0],
@@ -254,6 +261,7 @@ class UnitSelectivity(dj.Computed):
             'mean_fr_r_all': mean_fr_r,
             'mean_fr_l_all': mean_fr_l,
             'mean_fr_diff_rl_all': mean_fr_r - mean_fr_l,
+            'mean_fr_all': mean_fr_all,
             'preference': preference
         })
 
@@ -270,6 +278,7 @@ class AlignedPsthStimOn(dj.Computed):
     l_trial_number_on:    int         # trial number of left reports
     mean_fr_r_on:         longblob    # mean firing rate for right report trials
     mean_fr_l_on:         longblob    # mean firing rate for left report trials
+    mean_fr_all_on:       longblob    # mean firing rate for all trials
     psth_r_on:            longblob    # psth for right report trials
     psth_l_on:            longblob    # psth for left report trials
     psth_prefer_on:       longblob    # psth on preferred trials
@@ -297,22 +306,27 @@ class AlignedPsthStimOn(dj.Computed):
         max_trial = max(spk_trials)
         r_trials = get_trials(key, min_trial, max_trial, 'R')
         l_trials = get_trials(key, min_trial, max_trial, 'L')
+        all_trials = get_trials(key, min_trial, max_trial, 'All')
 
         if not (len(l_trials) > 2 and len(r_trials) > 2):
             return
 
         r_trial_ids = r_trials.fetch('trial_id')
         l_trial_ids = l_trials.fetch('trial_id')
+        all_trial_ids = all_trials.fetch('trial_id')
 
         # spike times
         spk_times_r = get_spk_times(key, spk_times, spk_trials,
                                     r_trial_ids)
         spk_times_l = get_spk_times(key, spk_times, spk_trials,
                                     l_trial_ids)
+        spk_times_all = get_spk_times(key, spk_times, spk_trials,
+                                      all_trial_ids)
 
         # spike counts in different stages
         spk_counts_r = np.array(get_spk_counts(key, spk_times_r, r_trial_ids))
         spk_counts_l = np.array(get_spk_counts(key, spk_times_l, l_trial_ids))
+        spk_counts_all = np.array(get_spk_counts(key, spk_times_all, all_trial_ids))
 
         # compute convoluted psth
         psth_r = get_psth(spk_times_r, bins)
@@ -330,6 +344,7 @@ class AlignedPsthStimOn(dj.Computed):
             'l_trial_number_on': len(l_trials),
             'mean_fr_r_on': np.mean(spk_counts_r, axis=0),
             'mean_fr_l_on': np.mean(spk_counts_l, axis=0),
+            'mean_fr_all_on': np.mean(spk_counts_all, axis=0),
             'psth_r_on': psth_r,
             'psth_l_on': psth_l,
             'psth_prefer_on': psth_prefer,
