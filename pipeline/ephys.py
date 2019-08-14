@@ -353,3 +353,245 @@ class AlignedPsthStimOn(dj.Computed):
         })
 
         self.insert1(aligned_psth)
+
+
+@schema
+class PsthForCodingDirection(dj.Computed):
+    definition = """
+    -> behavior.TrialSet
+    """
+
+    key_source = behavior.TrialSet & (
+        behavior.TrialNumberSummary &
+        'n_sample_l_trials > 5' & 'n_sample_r_trials > 5' &
+        'n_delay_l_trials > 5' & 'n_delay_r_trials > 5' &
+        'n_no_stim_l_trials > 5' & 'n_no_stim_r_trials > 5'
+    )
+
+    def make(self, key):
+        self.insert1(key)
+        testing_trial_num = (behavior.TrialNumberSummary & key).fetch1('n_test_trials')
+        keys_training = []
+        keys_stim_off = []
+        keys_stim_on = []
+
+        for ikey in (UnitSpikeTimes & key).fetch('KEY'):
+            print("Populating {}th unit".format(ikey['unit_id']))
+            spk_times, spk_trials = (UnitSpikeTimes & ikey).fetch1(
+                'spike_times', 'spike_trials')
+
+            min_trial = np.min(spk_trials)
+            max_trial = np.max(spk_trials)
+
+            cond_hit = dict(**ikey, trial_condition='Hit',
+                            photo_stim_id='0')
+            cond_all = dict(**ikey, trial_condition='All',
+                            photo_stim_id='0')
+
+            r_trials_hit = get_trials(cond_hit, min_trial, max_trial, 'R')
+            r_trials_all = get_trials(cond_all, min_trial, max_trial, 'R')
+            l_trials_hit = get_trials(cond_hit, min_trial, max_trial, 'L')
+            l_trials_all = get_trials(cond_all, min_trial, max_trial, 'L')
+
+            r_trial_ids_hit = r_trials_hit.fetch('trial_id')
+            l_trial_ids_hit = l_trials_hit.fetch('trial_id')
+            r_trial_ids_all = r_trials_all.fetch('trial_id')
+            l_trial_ids_all = l_trials_all.fetch('trial_id')
+
+            # training trials only comes from the hit trials
+            r_training_trial_ids = list(r_trial_ids_hit[testing_trial_num:])
+            l_training_trial_ids = list(l_trial_ids_hit[testing_trial_num:])
+            all_training_trial_ids = r_training_trial_ids + l_training_trial_ids
+
+            if len(r_training_trial_ids) < 10 or len(l_training_trial_ids) < 10:
+                continue
+
+            # test trials are the rest of all trials, including hit and err
+            r_test_trial_ids = [id for id in r_trial_ids_all if id not in r_training_trial_ids]
+            l_test_trial_ids = [id for id in l_trial_ids_all if id not in l_training_trial_ids]
+
+            # spike times
+            spk_times_r_test = get_spk_times(
+                ikey, spk_times, spk_trials, r_test_trial_ids)
+            spk_times_r_training = get_spk_times(
+                ikey, spk_times, spk_trials, r_training_trial_ids)
+            spk_times_l_test = get_spk_times(
+                ikey, spk_times, spk_trials, l_test_trial_ids)
+            spk_times_l_training = get_spk_times(
+                ikey, spk_times, spk_trials, l_training_trial_ids)
+
+            spk_times_all_training = get_spk_times(
+                ikey, spk_times, spk_trials, all_training_trial_ids)
+
+            # spike counts for different periods
+            spk_counts_r_training = np.array(get_spk_counts(ikey, spk_times_r_training, r_training_trial_ids))
+            spk_counts_l_training = np.array(get_spk_counts(ikey, spk_times_l_training, l_training_trial_ids))
+            spk_counts_all_training = np.array(get_spk_counts(ikey, spk_times_all_training, all_training_trial_ids))
+
+            # compute psth for no photo stim test trials
+            time_window = [-3.5, 2]
+            bins = np.arange(time_window[0], time_window[1]+0.001, 0.001)
+            psth_r_test = get_psth(spk_times_r_test, bins)
+            psth_l_test = get_psth(spk_times_l_test, bins)
+            psth_r_training = get_psth(spk_times_r_training, bins)
+            psth_l_training = get_psth(spk_times_l_training, bins)
+            psth_all_training = get_psth(spk_times_all_training, bins)
+
+            # ingest firing rate for training
+            key_training = ikey.copy()
+            key_training.update(
+                r_training_trial_ids=r_training_trial_ids,
+                l_training_trial_ids=l_training_trial_ids,
+                mean_fr_l_training=np.mean(spk_counts_l_training, axis=0),
+                mean_fr_r_training=np.mean(spk_counts_r_training, axis=0),
+                mean_fr_all_training=np.mean(spk_counts_all_training, axis=0),
+                spk_times_l_training=spk_times_l_training,
+                spk_times_r_training=spk_times_r_training,
+                psth_l_training=psth_l_training,
+                psth_r_training=psth_r_training,
+                psth_all_training=psth_all_training
+            )
+            keys_training.append(key_training)
+
+            # ingest PSTH test for photo stim off trials
+            key_stim_off = ikey.copy()
+            key_stim_off.update(
+                photo_stim_id="0",
+                psth_l_test=psth_l_test,
+                psth_r_test=psth_r_test,
+                spk_times_l_test=spk_times_l_test,
+                spk_times_r_test=spk_times_r_test,
+                time_bins=bins
+            )
+            keys_stim_off.append(key_stim_off)
+
+            # ingest PSTH for photo stim on trials
+            photo_stims = dj.U('photo_stim_id') & (behavior.TrialSet.Trial & key & 'photo_stim_id != "0"')
+            for photo_stim in photo_stims.fetch('KEY'):
+                cond_all = dict(**ikey, trial_condition='All',
+                                photo_stim_id=photo_stim['photo_stim_id'])
+                r_trials_all = get_trials(cond_all, min_trial, max_trial, 'R')
+                l_trials_all = get_trials(cond_all, min_trial, max_trial, 'L')
+
+                r_trial_ids = r_trials_all.fetch('trial_id')
+                l_trial_ids = l_trials_all.fetch('trial_id')
+                spk_times_r = get_spk_times(
+                    ikey, spk_times, spk_trials, r_trial_ids)
+                spk_times_l = get_spk_times(
+                    ikey, spk_times, spk_trials, l_trial_ids)
+
+                if not (len(spk_times_r) and len(spk_times_l)):
+                    continue
+                psth_r = get_psth(spk_times_r, bins)
+                psth_l = get_psth(spk_times_l, bins)
+
+                key_stim_on = ikey.copy()
+                key_stim_on.update(
+                    photo_stim_id=photo_stim['photo_stim_id'],
+                    psth_l_test=psth_l,
+                    psth_r_test=psth_r,
+                    spk_times_l_test=spk_times_l,
+                    spk_times_r_test=spk_times_r,
+                    time_bins=bins
+                )
+                keys_stim_on.append(key_stim_on)
+
+        self.MeanFiringRateTraining.insert(keys_training)
+        self.PsthTest.insert(keys_stim_off)
+        self.PsthTest.insert(keys_stim_on)
+
+    class MeanFiringRateTraining(dj.Part):
+        definition = """
+        -> master
+        -> UnitSpikeTimes
+        ---
+        r_training_trial_ids:    longblob
+        l_training_trial_ids:    longblob
+        mean_fr_l_training:      blob     # mean firing rate across trials for different stages
+        mean_fr_r_training:      blob     # mean firing rate across trials for different stages
+        mean_fr_all_training:    blob     # mean firing rate across trials for different stages
+        spk_times_l_training:    longblob
+        spk_times_r_training:    longblob
+        psth_l_training:         blob     # psth of left training trials
+        psth_r_training:         blob     # psth of right training trials
+        psth_all_training:       blob     # psth of all training trials
+        """
+
+    class PsthTest(dj.Part):
+        definition = """
+        -> master.MeanFiringRateTraining
+        -> behavior.PhotoStimType
+        ---
+        psth_l_test:      longblob
+        psth_r_test:      longblob
+        time_bins:        longblob
+        spk_times_l_test: longblob
+        spk_times_r_test: longblob
+        """
+
+
+@schema
+class CodingDirection(dj.Computed):
+    definition = """
+    -> PsthForCodingDirection
+    ---
+    coding_direction: longblob  # unit_number x 1, normalized difference r-l
+    """
+
+    def make(self, key):
+        mean_fr_l, mean_fr_r = (PsthForCodingDirection.MeanFiringRateTraining &
+                                (UnitSpikeTimes & 'unit_cell_type="pyramidal"') &
+                                key).fetch(
+            'mean_fr_l_training', 'mean_fr_r_training')
+        cd_vec = [fr_r[1] - fr_l[1] for fr_r, fr_l in zip(mean_fr_r, mean_fr_l)]
+        key['coding_direction'] = cd_vec / np.linalg.norm(cd_vec)
+
+        self.insert1(key)
+
+
+@schema
+class ProjectedPsthTraining(dj.Computed):
+    definition = """
+    -> PsthForCodingDirection
+    ---
+    proj_psth_training:   longblob
+    mean_fr_training:     float
+    """
+    key_source = PsthForCodingDirection & PsthForCodingDirection.MeanFiringRateTraining
+
+    def make(self, key):
+        psth = (PsthForCodingDirection.MeanFiringRateTraining &
+                (UnitSpikeTimes & 'unit_cell_type="pyramidal"') & key).fetch(
+            'psth_all_training')
+        cd = (CodingDirection & key).fetch1('coding_direction')
+        key.update(
+            proj_psth_training=np.dot(psth, cd)
+        )
+        key.update(
+            mean_fr_training=np.mean(key['proj_psth_training'])
+        )
+        self.insert1(key)
+
+
+@schema
+class ProjectedPsth(dj.Computed):
+    definition = """
+    -> PsthForCodingDirection
+    -> behavior.PhotoStimType
+    ---
+    proj_psth_l:   longblob
+    proj_psth_r:   longblob
+    """
+    key_source = (PsthForCodingDirection * behavior.PhotoStimType).proj() & PsthForCodingDirection.PsthTest
+
+    def make(self, key):
+        psth_l, psth_r = (PsthForCodingDirection.PsthTest & (UnitSpikeTimes & 'unit_cell_type="pyramidal"') & key).fetch(
+            'psth_l_test', 'psth_r_test')
+        cd = (CodingDirection & key).fetch1('coding_direction')
+        mean_fr_training = (ProjectedPsthTraining & key).fetch1(
+            'mean_fr_training')
+        key.update(
+            proj_psth_l=np.dot(psth_l, cd) - mean_fr_training,
+            proj_psth_r=np.dot(psth_r, cd) - mean_fr_training
+        )
+        self.insert1(key)

@@ -23,7 +23,6 @@ def get_trials(key, min_trial, max_trial, trial_type):
 
 
 def get_spk_times(key, spk_times, spk_trials, trials):
-
     return [spk_times[spk_trials == trial] -
             (behavior.TrialSet.Trial & key &
                 'trial_id = {}'.format(trial)).proj(
