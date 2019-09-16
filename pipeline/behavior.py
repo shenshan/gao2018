@@ -87,7 +87,7 @@ class TrialSet(dj.Imported):
             if np.any(np.isnan(cue_time)):
                 continue
 
-            if len(cue_time) > 1:
+            if np.size(cue_time) > 1:
                 cue_time = cue_time[0]
 
             if np.any(np.isnan([pole_in_time, pole_out_time,
@@ -105,7 +105,7 @@ class TrialSet(dj.Imported):
                 'trial_pole_out_time': pole_out_time,
                 'trial_cue_time': cue_time,
                 'trial_response': trial_type,
-                'trial_lick_early': bool(data.trialTypeMat[7][idx]),
+                'trial_lick_early': bool(data.trialTypeMat[6][idx]),
                 'photo_stim_id': str(int(photo_stim_type)),
                 'trial_start_idx': itrial_idx[0],
                 'trial_end_idx': itrial_idx[-1]
@@ -157,4 +157,37 @@ class TrialSetType(dj.Computed):
         if len(inhibition):
             key['trial_set_type'] = 'photo inhibition'
 
+        self.insert1(key)
+
+
+@schema
+class TrialNumberSummary(dj.Computed):
+    definition = """
+    -> TrialSet
+    ---
+    n_sample_l_trials   :   int
+    n_sample_r_trials   :   int
+    n_delay_l_trials    :   int
+    n_delay_r_trials    :   int
+    n_no_stim_l_trials  :   int
+    n_no_stim_r_trials  :   int
+    n_test_trials       :   int
+    """
+    key_source = TrialSet & (
+        TrialSet.Trial & 'photo_stim_id in ("1","2","3","4")')
+
+    def make(self, key):
+        key.update(
+            n_sample_l_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("1","3")' & 'trial_response in ("HitL", "ErrL")'),
+            n_sample_r_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("1","3")' & 'trial_response in ("HitR", "ErrR")'),
+            n_delay_l_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("2","4")' & 'trial_response in ("HitL", "ErrL")'),
+            n_delay_r_trials=len(TrialSet.Trial & key & 'photo_stim_id in ("2","4")' & 'trial_response in ("HitR", "ErrR")'),
+            n_no_stim_l_trials=len(TrialSet.Trial & key & 'photo_stim_id="0"' & 'trial_response in ("HitL", "ErrL")'),
+            n_no_stim_r_trials=len(TrialSet.Trial & key & 'photo_stim_id="0"' & 'trial_response in ("HitR", "ErrR")'),
+        )
+
+        key['n_test_trials'] = np.mean([key['n_sample_l_trials'],
+                                        key['n_sample_r_trials'],
+                                        key['n_delay_l_trials'],
+                                        key['n_delay_r_trials']])
         self.insert1(key)

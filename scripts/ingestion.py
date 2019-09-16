@@ -12,6 +12,7 @@ from datetime import datetime
 from pipeline import reference, subject, action, acquisition, behavior, ephys
 
 # insert the meta data
+print('Ingesting meta data...')
 files1 = glob.glob('/data/datafiles/meta_data*')
 files2 = glob.glob('/data/datafiles 2/meta_data*')
 files = np.hstack([files1, files2])
@@ -139,7 +140,6 @@ for file in files:
 
     # ===== acquisition tables ======
     # Session table and part tables
-
     dirs = file.partition('meta_data')
     session = {
         'subject': data.animalID,
@@ -213,7 +213,19 @@ for file in files:
     })
     ephys.ProbeInsertion.insert1(probe_insertion, skip_duplicates=True)
 
-
 # populate imported tables
-behavior.TrialSet.populate()
-ephys.UnitSpikeTimes.populate()
+print('Populating behavior and ephys tables...')
+kargs = dict(
+    display_progress=True,
+    suppress_errors=True
+)
+behavior.TrialSet.populate(**kargs)
+behavior.TrialSetType.populate(**kargs)
+ephys.UnitSpikeTimes.populate(**kargs)
+behavior.TrialNumberSummary.populate(**kargs)
+ephys.UnitSelectivity.populate(**kargs)
+ephys.AlignedPsthStimOn.populate(**kargs)
+ephys.PsthForCodingDirection.populate(**kargs)
+ephys.CodingDirection.populate(**kargs)
+ephys.ProjectedPsthTraining.populate(**kargs)
+ephys.ProjectedPsth.populate(**kargs)

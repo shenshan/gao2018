@@ -6,14 +6,16 @@ from pipeline import reference, subject
 
 schema = dj.schema('gao2018_action')
 
+
 @schema
 class Weighing(dj.Manual):
-    definition =  """
+    definition = """
     -> subject.Subject
     ---
     weight_before: float   # in grams
     weight_after: float    # in grams
     """
+
 
 @schema
 class SubjectWhiskerConfig(dj.Manual):
@@ -23,6 +25,7 @@ class SubjectWhiskerConfig(dj.Manual):
     -> reference.WhiskerConfig
     """
 
+
 @schema
 class VirusInjection(dj.Manual):
     definition = """
@@ -30,7 +33,7 @@ class VirusInjection(dj.Manual):
     -> reference.Virus
     -> reference.BrainLocation
     -> reference.Hemisphere
-    injection_date: date   
+    injection_date: date
     ---
     injection_volume: float # in nL
     injection_coordinate_ap: float   # in mm, negative if posterior, positive if anterior
