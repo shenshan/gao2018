@@ -34,11 +34,15 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
     nwbfile = NWBFile(identifier='_'.join(
         [this_session['subject'],
          this_session['session_time'].strftime('%Y-%m-%d %H:%M:%S')]),
+        related_publications='https://www.nature.com/articles/s41586-018-0633-x',
+        experiment_description='Extracelluar recording in ALM',
         session_description='',
         session_start_time=this_session['session_time'],
         file_create_date=datetime.now(tzlocal()),
         experimenter=experimenter,
-        institution=institution)
+        institution=institution,
+        keywords=['motor planning', 'anterior lateral cortex',
+                  'ALM', 'Extracellular recording', 'optogenetics'])
     # -- subject
     subj = (subject.Subject & session_key).fetch1()
 
@@ -76,14 +80,15 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
                                      if k not in dj_insert_location.primary_key}))
 
         for chn in (reference.Probe.Channel & probe).fetch(as_dict=True):
-            nwbfile.add_electrode(id=chn['channel_id'],
-                                  group=electrode_group,
-                                  filtering=hardware_filter,
-                                  imp=-1.,
-                                  x=np.nan,
-                                  y=np.nan,
-                                  z=np.nan,
-                                  location=(dj_insert_location & session_key).fetch1('brain_location'))
+            nwbfile.add_electrode(
+                id=chn['channel_id'],
+                group=electrode_group,
+                filtering=hardware_filter,
+                imp=-1.,
+                x=np.nan,
+                y=np.nan,
+                z=np.nan,
+                location=(dj_insert_location & session_key).fetch1('brain_location'))
 
 
         # --- unit spike times ---
@@ -172,5 +177,5 @@ if __name__ == '__main__':
     else:
         nwb_outdir = default_nwb_output_dir
 
-    for skey in experiment.Session.fetch('KEY'):
+    for skey in acquisition.Session.fetch('KEY'):
         export_to_nwb(skey, nwb_output_dir=nwb_outdir, save=True)
