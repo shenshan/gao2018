@@ -18,7 +18,7 @@ This study revealed a cortical-cerebellar loop for motor planning with electroph
 ![All combined erd](images/all_erd.png)
 
 
-# Instrunctions on setting up the pipeline locally.
+## Instrunctions on setting up the pipeline and notebook locally.
 
 1. This repo is set up with docker, install docker and docker-compose.
 
