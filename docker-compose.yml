@@ -10,3 +10,4 @@ services:
       - ./data:/data
     ports:
       - "8892:8888"
+
