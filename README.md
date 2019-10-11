@@ -1,6 +1,6 @@
 # Gao2018
 
-This repository sets up the data pipeline for Gao et al., 2018. **A cortico-cerebellar loop for motor planning**, replicates a subset of the major results (Figure 2c, 3e-f, and 4i), and export the data into nwb files.
+This repository sets up the data pipeline for Gao et al., 2018. **A cortico-cerebellar loop for motor planning**, replicates a subset of the major results (Figure 2c, 3e-f, and 4i), and exports the data into nwb files.
 
 Link to the publication:  https://www.nature.com/articles/s41586-018-0633-x
 
