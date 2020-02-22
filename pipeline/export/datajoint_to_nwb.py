@@ -95,12 +95,18 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
         nwbfile.add_unit_column(name='cell_type', description='cell type (e.g. fast spiking or pyramidal)')
         nwbfile.add_unit_column(name='sampling_rate', description='sampling rate of the waveform, Hz')
 
+        spk_times_all = np.hstack((ephys.UnitSpikeTimes & probe_insertion).fetch('spike_times'))
+
+        obs_min = np.min(spk_times_all)
+        obs_max = np.max(spk_times_all)
+
         for unit in (ephys.UnitSpikeTimes & probe_insertion).fetch(as_dict=True):
             nwbfile.add_unit(id=unit['unit_id'],
                              electrodes=[unit['channel']-1],
                              electrode_group=electrode_group,
                              cell_type=unit['unit_cell_type'],
                              spike_times=unit['spike_times'],
+                             obs_intervals=np.array([[obs_min - 0.001, obs_max + 0.001]]),
                              waveform_mean=np.mean(unit['spike_waveform'], axis=0),
                              waveform_sd=np.std(unit['spike_waveform'], axis=0),
                              sampling_rate=20000)
@@ -124,7 +130,6 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
             description='')
         nwbfile.add_ogen_site(stim_site)
 
-
     # ===============================================================================
     # =============================== BEHAVIOR TRIALS ===============================
     # ===============================================================================
@@ -136,7 +141,7 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
 
     dj_trial = acquisition.Session * behavior.TrialSet.Trial
     skip_adding_columns = acquisition.Session.primary_key + \
-        ['trial_id', 'trial_start_idx', 'trial_end_idx', 'trial_start_time']
+        ['trial_id', 'trial_start_idx', 'trial_end_idx', 'trial_start_time', 'session_note']
 
     if behavior.TrialSet.Trial & session_key:
         # Get trial descriptors from TrialSet.Trial and TrialStimInfo
@@ -155,6 +160,9 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
         for trial in (dj_trial & session_key).fetch(as_dict=True):
             trial['start_time'] = float(trial['trial_start_time'])
             trial['stop_time'] = float(trial['trial_start_time']) + 5.0
+            trial['trial_pole_in_time'] = trial['start_time'] + trial['trial_pole_in_time']
+            trial['trial_pole_out_time'] = trial['start_time'] + trial['trial_pole_out_time']
+            trial['trial_cue_time'] = trial['start_time'] + trial['trial_cue_time']
             [trial.pop(k) for k in skip_adding_columns]
             for k in trial.keys():
                 if 'trial_' in k:
