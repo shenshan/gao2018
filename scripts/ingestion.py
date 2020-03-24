@@ -137,6 +137,10 @@ for file in files:
                 'channel_counts': n_channels
             }
             reference.Probe.insert1(probe_key, skip_duplicates=True)
+            for ich in range(64):
+                reference.Probe.Channel.insert1(
+                    dict(probe_type=probe, channel_id=ich+1),
+                    skip_duplicates=True)
 
     # ===== acquisition tables ======
     # Session table and part tables
